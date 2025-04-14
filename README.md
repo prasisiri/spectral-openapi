@@ -228,3 +228,5 @@ Explain the rationale behind each custom rule:
 - **response-examples**: Promotes better documentation and testing
 - **servers-url-version**: Enforces proper API versioning
 - **api-version-format**: Ensures semantic versioning for clearer release management
+
+npm install @stoplight/spectral-core@1.16.1 @stoplight/spectral-functions@1.7.2 @stoplight/spectral-rulesets@1.15.0

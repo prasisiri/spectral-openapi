@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Demo script for MRS files with Spectral
+# Demo script for MJS files with Spectral
 
-# Display MRS file
-echo "=== Multi Ruleset Specification (.mrs) ==="
-cat spectral.mrs | head -20
+# Display MJS file
+echo "=== Module JavaScript Ruleset (.mjs) ==="
+cat spectral.mjs | head -20
 echo "..."
 echo ""
 
 # Copy to a temporary JSON file for Spectral
-echo "=== Converting MRS to JSON for Spectral compatibility ==="
-cp spectral.mrs temp-ruleset.json
+echo "=== Converting MJS to JSON for Spectral compatibility ==="
+cp spectral.mjs temp-ruleset.json
 echo "Created temporary JSON file for Spectral compatibility"
 echo ""
 
@@ -28,5 +28,5 @@ echo ""
 rm temp-ruleset.json
 
 echo "=== Demo completed ==="
-echo "The .mrs file format is used for Multi Ruleset Specification,"
-echo "which is more structured than traditional YAML rulesets." 
+echo "The .mjs file format is used for JavaScript ES modules,"
+echo "which allows using native JavaScript for complex validations."

@@ -7,7 +7,7 @@
       "openapi-spec/*.yaml"
     ],
     "https://unpkg.com/@stoplight/spectral/dist/schemas/ruleset.schema.json": [
-      "spectral.mrs"
+      "spectral.mjs"
     ]
   },
   "[yaml]": {

@@ -100,20 +100,20 @@ chmod +x run-gradle.sh
 3. The build fails if the OpenAPI spec doesn't meet your standards
 4. SpringDoc serves the static YAML file through Swagger UI
 
-## Working with Multiple MRS Files
+## Working with Multiple MJS Files
 
-### Understanding Multi Ruleset Specification (MRS)
+### Understanding JavaScript Module Rulesets (.mjs)
 
-MRS files are used to define API governance rules in a structured JSON format. They offer advantages over traditional YAML rulesets:
+MJS files are used to define API governance rules using JavaScript ES modules format. They offer advantages over traditional YAML rulesets:
 
-- Schema validation through explicit `$schema` reference
-- Format targeting with the `formats` array
-- Better IDE integration
-- More structured approach for complex rule management
+- Native JavaScript features for complex validation logic
+- ES Modules support with import/export syntax
+- Better IDE integration and TypeScript support
+- Dynamic rules with complex logic implementation
 
-### Comparing Multiple MRS Files
+### Comparing Multiple MJS Files
 
-To compare multiple MRS files for evaluation and feedback, you can use the following approach:
+To compare multiple MJS files for evaluation and feedback, you can use the following approach:
 
 1. Create a comparison script:
 
@@ -134,7 +134,7 @@ const rulesetPath1 = process.argv[2];
 const rulesetPath2 = process.argv[3];
 
 if (!rulesetPath1 || !rulesetPath2) {
-  console.error('Usage: node spectral-compare.js <ruleset1.mrs> <ruleset2.mrs>');
+  console.error('Usage: node spectral-compare.js <ruleset1.mjs> <ruleset2.mjs>');
   process.exit(1);
 }
 
@@ -216,20 +216,20 @@ chmod +x spectral-compare.js
 
 ```bash
 # Basic comparison
-node spectral-compare.js ruleset1.mrs ruleset2.mrs
+node spectral-compare.js ruleset1.mjs ruleset2.mjs
 
 # Compare across directories
-for file in teamA/*.mrs; do
-  node spectral-compare.js reference.mrs "$file" > "comparison-$(basename "$file").txt"
+for file in teamA/*.mjs; do
+  node spectral-compare.js reference.mjs "$file" > "comparison-$(basename "$file").txt"
 done
 
 # Create an HTML report (requires additional HTML template)
-node spectral-compare.js ruleset1.mrs ruleset2.mrs | node format-as-html.js > comparison.html
+node spectral-compare.js ruleset1.mjs ruleset2.mjs | node format-as-html.js > comparison.html
 ```
 
-### Analyzing Multiple MRS Files
+### Analyzing Multiple MJS Files
 
-When providing feedback on multiple MRS files, consider:
+When providing feedback on multiple MJS files, consider:
 
 1. **Governance Context**:
 

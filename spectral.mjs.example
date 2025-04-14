@@ -1,0 +1,123 @@
+import { truthy, pattern } from '@stoplight/spectral-functions';
+
+/**
+ * Spectral ruleset using JavaScript ES Module format
+ * This provides more flexibility than JSON/YAML rulesets
+ */
+export default {
+  extends: ["spectral:oas"],
+  rules: {
+    "path-kebab-case": {
+      description: "Path segments must use kebab-case",
+      severity: "error",
+      given: "$.paths.*~",
+      then: {
+        function: pattern,
+        functionOptions: {
+          match: "^(\\/[a-z0-9-]+|\\/\\{[a-zA-Z0-9]+\\})+$"
+        }
+      }
+    },
+    "operation-description": {
+      description: "Operation must have a description",
+      severity: "error",
+      given: "$.paths.*[?(@.get || @.put || @.post || @.delete || @.options || @.head || @.patch || @.trace)]",
+      then: {
+        field: "description",
+        function: truthy
+      }
+    },
+    "operation-tags": {
+      description: "Operation must have tags",
+      severity: "error",
+      given: "$.paths.*[?(@.get || @.put || @.post || @.delete || @.options || @.head || @.patch || @.trace)]",
+      then: {
+        field: "tags",
+        function: truthy
+      }
+    },
+    "operation-operationId": {
+      description: "Operation must have a properly formatted operationId",
+      severity: "error",
+      given: "$.paths.*[?(@.get || @.put || @.post || @.delete || @.options || @.head || @.patch || @.trace)]",
+      then: {
+        field: "operationId",
+        function: pattern,
+        functionOptions: {
+          match: "^[a-z][a-zA-Z0-9]+$"
+        }
+      }
+    },
+    "response-examples": {
+      description: "Response objects must have examples",
+      severity: "warn",
+      given: "$.paths.*.*.responses.*.content.*",
+      then: {
+        field: "examples",
+        function: truthy
+      }
+    },
+    "servers-url-version": {
+      description: "Servers URL should include API version",
+      severity: "error",
+      given: "$.servers[*].url",
+      then: {
+        function: pattern,
+        functionOptions: {
+          match: "v[0-9]+"
+        }
+      }
+    },
+    "api-version-format": {
+      description: "API version must be in semantic versioning format",
+      severity: "error",
+      given: "$.info.version",
+      then: {
+        function: pattern,
+        functionOptions: {
+          match: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    // Custom function example using JavaScript
+    "no-excessive-nesting": {
+      description: "Prevents excessive nesting in schemas (>3 levels)",
+      severity: "warn",
+      given: "$.components.schemas.*",
+      then: {
+        function: checkNesting
+      }
+    }
+  }
+};
+
+/**
+ * Custom function to check for excessive nesting in schemas
+ * This shows the power of using JavaScript for validation
+ */
+function checkNesting(schema, _options, context) {
+  const issues = [];
+  const maxDepth = 3;
+  
+  function findNestedObjects(obj, currentPath = [], depth = 0) {
+    if (depth > maxDepth && obj.type === 'object' && obj.properties) {
+      issues.push({
+        message: `Schema has excessive nesting (>${maxDepth} levels)`,
+        path: [...context.path, ...currentPath]
+      });
+    }
+    
+    if (obj.properties) {
+      for (const [propName, propValue] of Object.entries(obj.properties)) {
+        findNestedObjects(propValue, [...currentPath, 'properties', propName], depth + 1);
+      }
+    }
+    
+    if (obj.items) {
+      findNestedObjects(obj.items, [...currentPath, 'items'], depth);
+    }
+  }
+  
+  findNestedObjects(schema);
+  return issues;
+} 

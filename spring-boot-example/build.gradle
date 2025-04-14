@@ -22,9 +22,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
-// Add a task to copy .spectral.yaml to the resources directory
+// Add a task to copy spectral.mrs to the resources directory
 task copySpectralRuleset(type: Copy) {
-    from '../.spectral.yaml'
+    from '../spectral.mrs'
     into 'src/main/resources'
 }
 
@@ -44,10 +44,10 @@ task lintOpenApi(type: Exec) {
         }
     }
     
-    // Run the actual lint command with our custom ruleset
+    // Run the actual lint command with our MRS ruleset
     commandLine 'spectral', 'lint', 
         'src/main/resources/openapi.yaml', 
-        '--ruleset', 'src/main/resources/.spectral.yaml'
+        '--ruleset', 'src/main/resources/spectral.mrs'
 }
 
 // Hook into the build process

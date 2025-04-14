@@ -1,0 +1,17 @@
+{
+  "stoplight.spectral.enable": true,
+  "stoplight.spectral.rulesetFile": ".spectral.yaml",
+  "editor.formatOnSave": true,
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json": [
+      "openapi-spec/*.yaml"
+    ],
+    "https://unpkg.com/@stoplight/spectral/dist/schemas/ruleset.schema.json": [
+      "spectral.mrs"
+    ]
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "git.ignoreLimitWarning": true
+} 

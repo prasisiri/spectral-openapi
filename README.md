@@ -32,6 +32,7 @@ spectral lint openapi-spec/pet-store.yaml
 ### 2. Reviewing Rule Violations
 
 Explain each rule violation:
+
 - Path kebab-case issue (`/Pets` vs `/pets`)
 - Missing operation description
 - Missing operation tags
@@ -99,6 +100,166 @@ chmod +x run-gradle.sh
 3. The build fails if the OpenAPI spec doesn't meet your standards
 4. SpringDoc serves the static YAML file through Swagger UI
 
+## Working with Multiple MRS Files
+
+### Understanding Multi Ruleset Specification (MRS)
+
+MRS files are used to define API governance rules in a structured JSON format. They offer advantages over traditional YAML rulesets:
+
+- Schema validation through explicit `$schema` reference
+- Format targeting with the `formats` array
+- Better IDE integration
+- More structured approach for complex rule management
+
+### Comparing Multiple MRS Files
+
+To compare multiple MRS files for evaluation and feedback, you can use the following approach:
+
+1. Create a comparison script:
+
+```bash
+# Install required dependencies
+npm install @stoplight/spectral-core js-yaml lodash
+
+# Create a comparison script
+cat > spectral-compare.js << 'EOF'
+#!/usr/bin/env node
+
+const fs = require('fs');
+const yaml = require('js-yaml');
+const { difference, intersection, keys, union } = require('lodash');
+
+// Get ruleset paths from arguments
+const rulesetPath1 = process.argv[2];
+const rulesetPath2 = process.argv[3];
+
+if (!rulesetPath1 || !rulesetPath2) {
+  console.error('Usage: node spectral-compare.js <ruleset1.mrs> <ruleset2.mrs>');
+  process.exit(1);
+}
+
+// Load rulesets
+function loadRuleset(path) {
+  const content = fs.readFileSync(path, 'utf8');
+  try {
+    if (path.endsWith('.yaml') || path.endsWith('.yml')) {
+      return yaml.load(content);
+    } else {
+      return JSON.parse(content);
+    }
+  } catch (e) {
+    console.error(`Error parsing ${path}: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+const ruleset1 = loadRuleset(rulesetPath1);
+const ruleset2 = loadRuleset(rulesetPath2);
+
+// Get rule names
+const rules1 = keys(ruleset1.rules || {});
+const rules2 = keys(ruleset2.rules || {});
+
+// Compare rules
+const commonRules = intersection(rules1, rules2);
+const uniqueToFirst = difference(rules1, rules2);
+const uniqueToSecond = difference(rules2, rules1);
+const allRules = union(rules1, rules2);
+
+// Output comparison
+console.log(`\n=== Ruleset Comparison: ${rulesetPath1} vs ${rulesetPath2} ===\n`);
+console.log(`Total rules in ${rulesetPath1}: ${rules1.length}`);
+console.log(`Total rules in ${rulesetPath2}: ${rules2.length}`);
+console.log(`Common rules: ${commonRules.length}`);
+console.log(`Rules unique to ${rulesetPath1}: ${uniqueToFirst.length}`);
+console.log(`Rules unique to ${rulesetPath2}: ${uniqueToSecond.length}\n`);
+
+// Detailed comparison
+if (uniqueToFirst.length > 0) {
+  console.log(`\n=== Rules only in ${rulesetPath1} ===\n`);
+  uniqueToFirst.forEach(rule => {
+    console.log(`- ${rule} (${ruleset1.rules[rule].severity}): ${ruleset1.rules[rule].description}`);
+  });
+}
+
+if (uniqueToSecond.length > 0) {
+  console.log(`\n=== Rules only in ${rulesetPath2} ===\n`);
+  uniqueToSecond.forEach(rule => {
+    console.log(`- ${rule} (${ruleset2.rules[rule].severity}): ${ruleset2.rules[rule].description}`);
+  });
+}
+
+if (commonRules.length > 0) {
+  console.log(`\n=== Common rules with different configurations ===\n`);
+  commonRules.forEach(rule => {
+    const rule1 = ruleset1.rules[rule];
+    const rule2 = ruleset2.rules[rule];
+
+    if (rule1.severity !== rule2.severity) {
+      console.log(`- ${rule}: Severity differs (${rule1.severity} vs ${rule2.severity})`);
+    }
+
+    if (rule1.description !== rule2.description) {
+      console.log(`- ${rule}: Description differs`);
+    }
+
+    // Could add more detailed comparison of other properties
+  });
+}
+EOF
+
+# Make it executable
+chmod +x spectral-compare.js
+```
+
+2. Usage examples:
+
+```bash
+# Basic comparison
+node spectral-compare.js ruleset1.mrs ruleset2.mrs
+
+# Compare across directories
+for file in teamA/*.mrs; do
+  node spectral-compare.js reference.mrs "$file" > "comparison-$(basename "$file").txt"
+done
+
+# Create an HTML report (requires additional HTML template)
+node spectral-compare.js ruleset1.mrs ruleset2.mrs | node format-as-html.js > comparison.html
+```
+
+### Analyzing Multiple MRS Files
+
+When providing feedback on multiple MRS files, consider:
+
+1. **Governance Context**:
+
+   - Target API types (internal, partner, public)
+   - Standards implementation (company, industry)
+
+2. **Technical Evaluation**:
+
+   - Configuration validity
+   - Rule duplication
+   - Severity appropriateness
+
+3. **Coverage Analysis**:
+
+   - Security aspects
+   - Consistency requirements
+   - Documentation standards
+   - Performance considerations
+
+4. **Testing**:
+
+   - False positive identification
+   - Issue detection verification
+
+5. **Documentation**:
+   - Per-ruleset recommendations
+   - Consolidation opportunities
+   - Gap analysis
+   - Implementation suggestions
+
 ## Custom Rules Explanation
 
 Explain the rationale behind each custom rule:
@@ -109,4 +270,4 @@ Explain the rationale behind each custom rule:
 - **operation-operationId**: Enforces consistent naming for client code generation
 - **response-examples**: Promotes better documentation and testing
 - **servers-url-version**: Enforces proper API versioning
-- **api-version-format**: Ensures semantic versioning for clearer release management 
+- **api-version-format**: Ensures semantic versioning for clearer release management

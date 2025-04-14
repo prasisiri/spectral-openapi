@@ -2,6 +2,62 @@
 import { truthy, pattern } from "@stoplight/spectral-functions";
 
 /**
+ * Custom function to safely check version format
+ * Handles undefined values and non-string types
+ */
+function safeVersionCheck(input, options, context) {
+  // First check if version exists and is a string
+  if (!input || typeof input !== "string") {
+    return [
+      {
+        message:
+          "API version must be a string in semantic versioning format (x.y.z)",
+      },
+    ];
+  }
+
+  // Then check if it matches the pattern
+  const semverPattern = /^[0-9]+\.[0-9]+\.[0-9]+$/;
+  if (!semverPattern.test(input)) {
+    return [
+      {
+        message: "API version must follow semantic versioning format (x.y.z)",
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Custom function to safely check URL version
+ * Handles undefined values and non-string types
+ */
+function safeUrlVersionCheck(input, options, context) {
+  // First check if URL exists and is a string
+  if (!input || typeof input !== "string") {
+    return [
+      {
+        message:
+          "Server URL must be a string that includes API version (v1, v2, etc.)",
+      },
+    ];
+  }
+
+  // Then check if it includes a version
+  const versionPattern = /v[0-9]+/;
+  if (!versionPattern.test(input)) {
+    return [
+      {
+        message: "Server URL must include API version (e.g., v1, v2)",
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
  * Spectral ruleset for OpenAPI validation
  * Using ES Module format for better extensibility
  */
@@ -68,29 +124,23 @@ export default {
       },
     },
 
-    // Enforce proper versioning in the servers URL
+    // Enforce proper versioning in the servers URL with safer checking
     "servers-url-version": {
       description: "Servers URL should include API version",
       severity: "error",
       given: "$.servers[*].url",
       then: {
-        function: pattern,
-        functionOptions: {
-          match: "v[0-9]+",
-        },
+        function: safeUrlVersionCheck,
       },
     },
 
-    // Enforce version format in info object
+    // Enforce version format in info object with safer checking
     "api-version-format": {
       description: "API version must be in semantic versioning format",
       severity: "error",
       given: "$.info.version",
       then: {
-        function: pattern,
-        functionOptions: {
-          match: "^[0-9]+\\.[0-9]+\\.[0-9]+$",
-        },
+        function: safeVersionCheck,
       },
     },
   },

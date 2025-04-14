@@ -1,0 +1,58 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.0'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    // The build-scan plugin is not compatible with Gradle 6.0+
+    // id 'com.gradle.build-scan' version '3.6.3'
+    // Use Gradle Enterprise plugin instead if needed
+    // id 'com.gradle.enterprise' version '3.12.3'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.9'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// Add a task to copy .spectral.yaml to the resources directory
+task copySpectralRuleset(type: Copy) {
+    from '../.spectral.yaml'
+    into 'src/main/resources'
+}
+
+// Add a task to run Spectral linting on OpenAPI specs
+task lintOpenApi(type: Exec) {
+    group = 'verification'
+    description = 'Lints the OpenAPI specification files'
+    
+    // Ensure spectral is installed and ruleset is copied
+    dependsOn copySpectralRuleset
+    
+    doFirst {
+        exec {
+            ignoreExitValue = true
+            executable 'bash'
+            args '-c', 'which spectral || npm install -g @stoplight/spectral-cli'
+        }
+    }
+    
+    // Run the actual lint command with our custom ruleset
+    commandLine 'spectral', 'lint', 
+        'src/main/resources/openapi.yaml', 
+        '--ruleset', 'src/main/resources/.spectral.yaml'
+}
+
+// Hook into the build process
+assemble.dependsOn lintOpenApi
+
+test {
+    useJUnitPlatform()
+} 

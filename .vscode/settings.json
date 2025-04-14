@@ -1,6 +1,6 @@
 {
   "stoplight.spectral.enable": true,
-  "stoplight.spectral.rulesetFile": ".spectral.yaml",
+  "stoplight.spectral.rulesetFile": "spectral.mjs",
   "editor.formatOnSave": true,
   "yaml.schemas": {
     "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json": [

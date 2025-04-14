@@ -10,7 +10,7 @@ This project demonstrates how to use Spectral to validate OpenAPI specifications
 npm install -g @stoplight/spectral-cli
 ```
 
-2. The ruleset is defined in `.spectral.yaml` with custom rules for:
+2. The ruleset is defined in `spectral.mjs` with custom rules for:
    - Path naming conventions (kebab-case)
    - Required operation descriptions
    - Required tags for operations
@@ -26,7 +26,11 @@ npm install -g @stoplight/spectral-cli
 Run the linting command on the problematic spec:
 
 ```bash
+# Using the standard YAML ruleset
 spectral lint openapi-spec/pet-store.yaml
+
+# Using the MJS ruleset (recommended)
+./lint-with-mjs.sh openapi-spec/pet-store.yaml
 ```
 
 ### 2. Reviewing Rule Violations
@@ -113,7 +117,7 @@ MJS files are used to define API governance rules using JavaScript ES modules fo
 
 ### Enhanced Comparison Tool for MJS Files
 
-The included `spectral-compare.js` script fully supports comparing JavaScript ES Module (.mjs) rulesets:
+The included `spectral-compare.js` script fully supports comparing JavaScript Module (.mjs) rulesets:
 
 ```javascript
 // Example MJS ruleset structure

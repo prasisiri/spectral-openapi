@@ -40,7 +40,7 @@ task lintOpenApi(type: Exec) {
         exec {
             ignoreExitValue = true
             executable 'bash'
-            args '-c', 'which spectral || npm install -g @stoplight/spectral-cli'
+            args '-c', 'which spectral || npm install -g @stoplight/spectral-cli && npm install @stoplight/spectral-functions'
         }
     }
     

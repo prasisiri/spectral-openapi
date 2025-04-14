@@ -111,121 +111,78 @@ MJS files are used to define API governance rules using JavaScript ES modules fo
 - Better IDE integration and TypeScript support
 - Dynamic rules with complex logic implementation
 
-### Comparing Multiple MJS Files
+### Enhanced Comparison Tool for MJS Files
 
-To compare multiple MJS files for evaluation and feedback, you can use the following approach:
+The included `spectral-compare.js` script fully supports comparing JavaScript ES Module (.mjs) rulesets:
 
-1. Create a comparison script:
+```javascript
+// Example MJS ruleset structure
+import { truthy, pattern } from "@stoplight/spectral-functions";
+
+export default {
+  extends: ["spectral:oas"],
+  rules: {
+    "path-kebab-case": {
+      description: "Path segments must use kebab-case",
+      severity: "error",
+      given: "$.paths.*~",
+      then: {
+        function: pattern,
+        functionOptions: {
+          match: "^(\\/[a-z0-9-]+|\\/\\{[a-zA-Z0-9]+\\})+$",
+        },
+      },
+    },
+    // Custom JavaScript function for complex validation
+    "no-excessive-nesting": {
+      description: "Prevents excessive nesting in schemas",
+      severity: "warn",
+      given: "$.components.schemas.*",
+      then: {
+        function: checkNesting, // Reference to JavaScript function
+      },
+    },
+  },
+};
+
+// Custom function implementation
+function checkNesting(schema, _options, context) {
+  // Complex validation logic here
+}
+```
+
+#### Installation
 
 ```bash
 # Install required dependencies
 npm install @stoplight/spectral-core js-yaml lodash
-
-# Create a comparison script
-cat > spectral-compare.js << 'EOF'
-#!/usr/bin/env node
-
-const fs = require('fs');
-const yaml = require('js-yaml');
-const { difference, intersection, keys, union } = require('lodash');
-
-// Get ruleset paths from arguments
-const rulesetPath1 = process.argv[2];
-const rulesetPath2 = process.argv[3];
-
-if (!rulesetPath1 || !rulesetPath2) {
-  console.error('Usage: node spectral-compare.js <ruleset1.mjs> <ruleset2.mjs>');
-  process.exit(1);
-}
-
-// Load rulesets
-function loadRuleset(path) {
-  const content = fs.readFileSync(path, 'utf8');
-  try {
-    if (path.endsWith('.yaml') || path.endsWith('.yml')) {
-      return yaml.load(content);
-    } else {
-      return JSON.parse(content);
-    }
-  } catch (e) {
-    console.error(`Error parsing ${path}: ${e.message}`);
-    process.exit(1);
-  }
-}
-
-const ruleset1 = loadRuleset(rulesetPath1);
-const ruleset2 = loadRuleset(rulesetPath2);
-
-// Get rule names
-const rules1 = keys(ruleset1.rules || {});
-const rules2 = keys(ruleset2.rules || {});
-
-// Compare rules
-const commonRules = intersection(rules1, rules2);
-const uniqueToFirst = difference(rules1, rules2);
-const uniqueToSecond = difference(rules2, rules1);
-const allRules = union(rules1, rules2);
-
-// Output comparison
-console.log(`\n=== Ruleset Comparison: ${rulesetPath1} vs ${rulesetPath2} ===\n`);
-console.log(`Total rules in ${rulesetPath1}: ${rules1.length}`);
-console.log(`Total rules in ${rulesetPath2}: ${rules2.length}`);
-console.log(`Common rules: ${commonRules.length}`);
-console.log(`Rules unique to ${rulesetPath1}: ${uniqueToFirst.length}`);
-console.log(`Rules unique to ${rulesetPath2}: ${uniqueToSecond.length}\n`);
-
-// Detailed comparison
-if (uniqueToFirst.length > 0) {
-  console.log(`\n=== Rules only in ${rulesetPath1} ===\n`);
-  uniqueToFirst.forEach(rule => {
-    console.log(`- ${rule} (${ruleset1.rules[rule].severity}): ${ruleset1.rules[rule].description}`);
-  });
-}
-
-if (uniqueToSecond.length > 0) {
-  console.log(`\n=== Rules only in ${rulesetPath2} ===\n`);
-  uniqueToSecond.forEach(rule => {
-    console.log(`- ${rule} (${ruleset2.rules[rule].severity}): ${ruleset2.rules[rule].description}`);
-  });
-}
-
-if (commonRules.length > 0) {
-  console.log(`\n=== Common rules with different configurations ===\n`);
-  commonRules.forEach(rule => {
-    const rule1 = ruleset1.rules[rule];
-    const rule2 = ruleset2.rules[rule];
-
-    if (rule1.severity !== rule2.severity) {
-      console.log(`- ${rule}: Severity differs (${rule1.severity} vs ${rule2.severity})`);
-    }
-
-    if (rule1.description !== rule2.description) {
-      console.log(`- ${rule}: Description differs`);
-    }
-
-    // Could add more detailed comparison of other properties
-  });
-}
-EOF
-
-# Make it executable
-chmod +x spectral-compare.js
 ```
 
-2. Usage examples:
+#### Usage Examples
 
 ```bash
 # Basic comparison
 node spectral-compare.js ruleset1.mjs ruleset2.mjs
 
+# Compare MJS with YAML or JSON rulesets
+node spectral-compare.js company-ruleset.mjs standard-ruleset.yaml
+
 # Compare across directories
 for file in teamA/*.mjs; do
   node spectral-compare.js reference.mjs "$file" > "comparison-$(basename "$file").txt"
 done
-
-# Create an HTML report (requires additional HTML template)
-node spectral-compare.js ruleset1.mjs ruleset2.mjs | node format-as-html.js > comparison.html
 ```
+
+#### Key Features of the Enhanced Comparison Tool
+
+- **Full MJS Support**: Dynamically loads and evaluates ES Modules
+- **Custom Function Detection**: Identifies and reports JavaScript functions used for validation
+- **Comprehensive Comparison**:
+  - Rule presence/absence across rulesets
+  - Severity differences
+  - Target path differences (JSONPath expressions)
+  - Implementation differences (function vs built-in validation)
+- **Detailed Reporting**: Structured output of differences for easy analysis
 
 ### Analyzing Multiple MJS Files
 

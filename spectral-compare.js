@@ -23,40 +23,43 @@ async function loadRuleset(filePath) {
   try {
     // Handle MJS files (ES Modules)
     if (filePath.endsWith(".mjs")) {
-      const tempFile = path.join(os.tmpdir(), `temp-ruleset-${Date.now()}.js`);
+      const tempDir = os.tmpdir();
+      const tempJsonFile = path.join(tempDir, `ruleset-${Date.now()}.json`);
+      const tempEsmFile = path.join(tempDir, `loader-${Date.now()}.mjs`);
 
-      // Create a temporary CommonJS wrapper to import the ESM
-      fs.writeFileSync(
-        tempFile,
-        `
-        import * as ruleset from '${path.resolve(filePath)}';
-        import { writeFileSync } from 'fs';
+      // Create a temporary ESM loader that will export the ruleset to JSON
+      const loaderCode = `
+        import * as rulesetModule from '${path.resolve(filePath)}';
+        import fs from 'fs';
+        import path from 'path';
         
-        // Extract the default export or the entire module
-        const rulesetData = ruleset.default || ruleset;
-        
-        // Write to stdout for the parent process to capture
-        writeFileSync(1, JSON.stringify(rulesetData));
-      `
-      );
+        const ruleset = rulesetModule.default || rulesetModule;
+        fs.writeFileSync('${tempJsonFile}', JSON.stringify(ruleset, null, 2));
+      `;
+
+      fs.writeFileSync(tempEsmFile, loaderCode);
 
       try {
-        // Execute the wrapper with Node.js ESM support
-        const result = execSync(`node --input-type=module ${tempFile}`, {
+        // Execute the ESM loader
+        execSync(`node ${tempEsmFile}`, {
           encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
+          stdio: "inherit",
         });
 
-        return JSON.parse(result);
+        // Read the resulting JSON file
+        const rulesetJson = fs.readFileSync(tempJsonFile, "utf8");
+        const ruleset = JSON.parse(rulesetJson);
+
+        // Clean up temporary files
+        fs.unlinkSync(tempEsmFile);
+        fs.unlinkSync(tempJsonFile);
+
+        return ruleset;
       } catch (execError) {
         console.error(
-          `Error executing MJS file ${filePath}: ${execError.message}`
+          `Error loading MJS file ${filePath}: ${execError.message}`
         );
-        if (execError.stderr) console.error(execError.stderr);
         process.exit(1);
-      } finally {
-        // Clean up temp file
-        fs.unlinkSync(tempFile);
       }
     }
 
@@ -120,18 +123,25 @@ async function compareRulesets() {
 
   if (commonRules.length > 0) {
     console.log(`\n=== Common rules with different configurations ===\n`);
+    let foundDifferences = false;
+
     commonRules.forEach((rule) => {
       const rule1 = ruleset1.rules[rule];
       const rule2 = ruleset2.rules[rule];
+      let hasDifference = false;
 
       if (rule1.severity !== rule2.severity) {
         console.log(
           `- ${rule}: Severity differs (${rule1.severity} vs ${rule2.severity})`
         );
+        hasDifference = true;
       }
 
       if (rule1.description !== rule2.description) {
         console.log(`- ${rule}: Description differs`);
+        console.log(`  ${rulesetPath1}: ${rule1.description}`);
+        console.log(`  ${rulesetPath2}: ${rule2.description}`);
+        hasDifference = true;
       }
 
       // Compare given paths
@@ -139,33 +149,48 @@ async function compareRulesets() {
         console.log(`- ${rule}: Target paths differ`);
         console.log(`  ${rulesetPath1}: ${rule1.given}`);
         console.log(`  ${rulesetPath2}: ${rule2.given}`);
+        hasDifference = true;
       }
 
-      // Compare function types
-      const function1 = rule1.then?.function;
-      const function2 = rule2.then?.function;
-
-      if (typeof function1 !== typeof function2) {
-        console.log(
-          `- ${rule}: Function implementation differs (${typeof function1} vs ${typeof function2})`
-        );
-      }
+      foundDifferences = foundDifferences || hasDifference;
     });
+
+    if (!foundDifferences) {
+      console.log("No differences found in common rules.");
+    }
   }
 
-  // Check for custom JavaScript functions
-  console.log(`\n=== Custom JavaScript Functions ===\n`);
+  // Custom functions are hard to detect after serialization since they become undefined or empty objects
+  // Instead, we'll analyze the rule configurations to infer if they might have had custom functions
+  const customFunctionRules1 = rules1.filter(
+    (rule) =>
+      !ruleset1.rules[rule].then?.function ||
+      typeof ruleset1.rules[rule].then?.function !== "string"
+  );
 
-  const jsFunction1 = Object.values(ruleset1.rules || {}).filter(
-    (r) => typeof r.then?.function === "function"
-  ).length;
+  const customFunctionRules2 = rules2.filter(
+    (rule) =>
+      !ruleset2.rules[rule].then?.function ||
+      typeof ruleset2.rules[rule].then?.function !== "string"
+  );
 
-  const jsFunction2 = Object.values(ruleset2.rules || {}).filter(
-    (r) => typeof r.then?.function === "function"
-  ).length;
+  if (customFunctionRules1.length > 0 || customFunctionRules2.length > 0) {
+    console.log(`\n=== Potential Custom JavaScript Functions ===\n`);
 
-  console.log(`Custom functions in ${rulesetPath1}: ${jsFunction1}`);
-  console.log(`Custom functions in ${rulesetPath2}: ${jsFunction2}`);
+    if (customFunctionRules1.length > 0) {
+      console.log(`Rules in ${rulesetPath1} that might use custom functions:`);
+      customFunctionRules1.forEach((rule) => {
+        console.log(`- ${rule}: ${ruleset1.rules[rule].description}`);
+      });
+    }
+
+    if (customFunctionRules2.length > 0) {
+      console.log(`Rules in ${rulesetPath2} that might use custom functions:`);
+      customFunctionRules2.forEach((rule) => {
+        console.log(`- ${rule}: ${ruleset2.rules[rule].description}`);
+      });
+    }
+  }
 }
 
 // Run the comparison
